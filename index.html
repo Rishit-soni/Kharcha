@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kharcha</title>
+<meta name="description" content="Log an expense in two taps. Smart categories, works offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F4F5F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0C10" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kharcha">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="icon" href="img/icon-192.png" type="image/png">
+<link rel="preload" href="fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Capture -->
+  <main id="v-add" class="view" aria-label="Add an expense">
+    <header class="cap-head">
+      <a class="today" href="#insights" aria-label="Open insights">
+        <span class="today-date" id="today-date">Today</span>
+        <span class="today-line">
+          <span class="today-amt" id="t-today">₹0</span>
+          <span class="today-sub" id="t-month">₹0 this month</span>
+        </span>
+      </a>
+      <nav class="head-actions">
+        <a class="icon-btn" href="#insights" aria-label="Insights" data-i="chart-column"></a>
+        <a class="icon-btn" href="#settings" aria-label="Settings" data-i="settings-2"></a>
+      </nav>
+    </header>
+
+    <section class="amount-zone">
+      <div class="amount empty" id="amount" role="status" aria-live="polite">
+        <span class="cur" id="cur">₹</span><span class="digits" id="digits">0</span><span class="caret" aria-hidden="true"></span>
+      </div>
+      <div class="meta-row">
+        <button class="pill" id="note-pill" type="button"><span data-i="notebook-pen"></span><span id="note-text">Add note</span></button>
+        <input class="note-field" id="note" type="text" maxlength="80" placeholder="What was it for?" autocomplete="off" enterkeyhint="done" aria-label="Note" hidden>
+        <label class="pill" id="when-pill"><span data-i="clock"></span><span id="when-text">Now</span><input type="datetime-local" id="when" aria-label="When was this expense"></label>
+        <button class="pill-x" id="when-reset" type="button" aria-label="Set time back to now" hidden><span data-i="x"></span></button>
+      </div>
+    </section>
+
+    <div class="cat-head">
+      <div id="smart" class="smart"></div>
+      <a class="text-btn" href="#categories">Edit</a>
+    </div>
+    <div class="strip" id="strip" role="radiogroup" aria-label="Category"></div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" type="button" data-k="1">1</button>
+      <button class="key" type="button" data-k="2">2</button>
+      <button class="key" type="button" data-k="3">3</button>
+      <button class="key" type="button" data-k="4">4</button>
+      <button class="key" type="button" data-k="5">5</button>
+      <button class="key" type="button" data-k="6">6</button>
+      <button class="key" type="button" data-k="7">7</button>
+      <button class="key" type="button" data-k="8">8</button>
+      <button class="key" type="button" data-k="9">9</button>
+      <button class="key dot" type="button" data-k="." aria-label="Decimal point"><span>.</span></button>
+      <button class="key" type="button" data-k="0">0</button>
+      <button class="key" type="button" data-k="back" aria-label="Delete digit. Hold to clear."><span data-i="delete"></span></button>
+    </div>
+    <button class="save" id="save" type="button" disabled>Enter an amount</button>
+  </main>
+
+  <!-- Insights -->
+  <section id="v-insights" class="view scroll" aria-label="Insights" hidden>
+    <header class="sub-head">
+      <button class="icon-btn back" type="button" aria-label="Back" data-i="chevron-left"></button>
+      <h1>Insights</h1>
+      <span></span>
+    </header>
+    <div class="month-switch">
+      <span class="m" id="m-label" aria-live="polite">Month</span>
+      <span class="arrows">
+        <button class="icon-btn" id="m-prev" type="button" aria-label="Previous month" data-i="chevron-left"></button>
+        <button class="icon-btn" id="m-next" type="button" aria-label="Next month" data-i="chevron-right"></button>
+      </span>
+    </div>
+    <div class="card">
+      <div class="hero-top"><span class="lbl" id="h-label">Spent</span><span id="h-delta"></span></div>
+      <div class="hero-amt" id="h-total">₹0</div>
+      <div class="hero-sub" id="h-sub"></div>
+      <div class="bars" id="bars" aria-hidden="true"></div>
+      <div class="bars-axis" id="bars-axis" aria-hidden="true"></div>
+    </div>
+    <div class="card" id="by-cat">
+      <p class="card-title">By category</p>
+      <div class="stack" id="stack" aria-hidden="true"></div>
+      <div id="crows"></div>
+    </div>
+    <div class="tx-head">
+      <h2>Expenses</h2>
+      <button class="chip cc" id="filter-chip" type="button" hidden></button>
+    </div>
+    <div id="days"></div>
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn" id="csv-month" type="button"><span data-i="download"></span>Export CSV</button>
+      <button class="btn" id="csv-copy" type="button"><span data-i="copy"></span>Copy CSV</button>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section id="v-categories" class="view scroll" aria-label="Categories" hidden>
+    <header class="sub-head">
+      <button class="icon-btn back" type="button" aria-label="Back" data-i="chevron-left"></button>
+      <h1>Categories</h1>
+      <button class="icon-btn" id="cat-new-top" type="button" aria-label="New category" data-i="plus"></button>
+    </header>
+    <p class="group-note" style="margin:4px 6px 12px">Drag the handle to reorder. The first eight show without scrolling on the add screen.</p>
+    <div class="mlist" id="mlist"></div>
+    <button class="btn block" id="cat-new" type="button" style="margin-top:14px"><span data-i="plus"></span>New category</button>
+  </section>
+
+  <!-- Settings -->
+  <section id="v-settings" class="view scroll" aria-label="Settings" hidden>
+    <header class="sub-head">
+      <button class="icon-btn back" type="button" aria-label="Back" data-i="chevron-left"></button>
+      <h1>Settings</h1>
+      <span></span>
+    </header>
+
+    <div class="group-label">Categories</div>
+    <div class="group">
+      <a class="cell" href="#categories">
+        <span class="ci" data-i="tag"></span>
+        <span class="mid"><span class="t1">Manage categories</span><span class="t2" id="s-cat-count"></span></span>
+        <span class="end" data-i="chevron-right"></span>
+      </a>
+    </div>
+
+    <div class="group-label">Smart suggestions</div>
+    <div class="group">
+      <div class="cell">
+        <span class="ci" data-i="sparkles"></span>
+        <span class="mid"><span class="t1">Learn from my history</span><span class="t2">Uses time, amount and notes you've logged before</span></span>
+        <label class="switch"><input type="checkbox" id="s-learn" aria-label="Learn from my history"><span></span></label>
+      </div>
+      <button class="cell" type="button" id="s-meals">
+        <span class="ci" data-i="clock"></span>
+        <span class="mid"><span class="t1">Meal times</span><span class="t2" id="s-meals-sub"></span></span>
+        <span class="end" data-i="chevron-right"></span>
+      </button>
+    </div>
+    <p class="group-note">Any category can have its own times and keywords. A note like "uber" or "swiggy" picks the right category for you.</p>
+
+    <div class="group-label">General</div>
+    <div class="group">
+      <div class="cell">
+        <span class="ci" data-i="indian-rupee"></span>
+        <span class="mid"><span class="t1">Currency symbol</span></span>
+        <input class="cell-input" id="s-currency" type="text" maxlength="4" autocomplete="off" aria-label="Currency symbol">
+      </div>
+      <div class="cell">
+        <span class="ci" data-i="sparkle"></span>
+        <span class="mid"><span class="t1">Appearance</span></span>
+        <div class="seg" id="s-theme" role="group" aria-label="Appearance">
+          <button type="button" data-v="system">Auto</button>
+          <button type="button" data-v="light">Light</button>
+          <button type="button" data-v="dark">Dark</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="group-label">Quick-add link</div>
+    <div class="group">
+      <p class="group-note" style="margin:14px 16px 10px">Opening this link saves the expense instantly. Use it from an iPhone Shortcut or an Android automation.</p>
+      <div class="code" id="s-link"></div>
+      <button class="cell" type="button" id="s-link-copy"><span class="ci" data-i="link"></span><span class="mid"><span class="t1">Copy link</span></span></button>
+    </div>
+
+    <div class="group-label">Your data</div>
+    <div class="group">
+      <button class="cell" type="button" id="s-backup"><span class="ci" data-i="download"></span><span class="mid"><span class="t1">Save backup</span><span class="t2" id="s-count"></span></span></button>
+      <button class="cell" type="button" id="s-restore"><span class="ci" data-i="upload"></span><span class="mid"><span class="t1">Restore backup</span><span class="t2">Merges a backup file. Nothing is overwritten.</span></span></button>
+      <button class="cell" type="button" id="s-csv"><span class="ci" data-i="list"></span><span class="mid"><span class="t1">Export everything as CSV</span></span></button>
+      <input type="file" id="s-file" accept="application/json,.json" hidden>
+    </div>
+    <p class="group-note" id="s-storage">Everything stays on this phone. Nothing is uploaded.</p>
+
+    <div class="group-label">Danger zone</div>
+    <div class="group">
+      <button class="cell" type="button" id="s-erase"><span class="ci" data-i="trash-2" style="color:var(--danger)"></span><span class="mid"><span class="t1" id="s-erase-text" style="color:var(--danger)">Erase all expenses</span></span></button>
+    </div>
+    <p class="foot-note">Kharcha 2.0<br>Icons by Lucide · Type: Bricolage Grotesque &amp; Geist</p>
+  </section>
+</div>
+
+<!-- Bottom sheet -->
+<div class="sheet-wrap" id="sheet" hidden>
+  <div class="scrim" data-close></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="sheet-head"><h2 id="sheet-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close" data-i="x"></button></div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-foot" id="sheet-foot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
